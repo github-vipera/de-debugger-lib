@@ -32,8 +32,10 @@ const CDP = require('chrome-remote-interface')
 
 export class DEDebuggerImpl implements DEDebugger {
     private client:ChromeDebuggerClient = null;
+    private paused:boolean=false;
     public breakpoints: Array<Breakpoint> = [];
     public scripts: Array<Script> = [];
+    public callFrames:Array<any> = [];
     public events: EventEmitter = new EventEmitter();
 
     constructor(){
@@ -72,6 +74,7 @@ export class DEDebuggerImpl implements DEDebugger {
                     reject(err);
                     return;
                 }
+                this.initBaseEvents();
                 this.setUpDebuggerScriptParser();
                 this.enableInternalServices().then(resolve,reject);
             })
@@ -83,8 +86,8 @@ export class DEDebuggerImpl implements DEDebugger {
             this.client.Console.enable(),
             this.client.Debugger.enable(),
             this.client.Inspector.enable()
-        ]).then(() => {
-            console.log("enableInternalServices done");
+        ]).then((res) => {
+            console.log("enableInternalServices done",res);
         });
     }
 
@@ -105,19 +108,41 @@ export class DEDebuggerImpl implements DEDebugger {
                 });
             }
         })
-        // Page.loadEventFired((params) => {
-        //   this.scripts = []
-        // })
+
+        /*this.client.on('event',(params) => {
+            console.log("Event",params);
+        });*/
+
+        this.client.Page.loadEventFired((params) => {
+           this.scripts = []
+        })
+
         this.client.Runtime.consoleAPICalled((params) => {
             this.fireEvent('didLogMessage', params)
-        })
+        });
+
+        this.client.Debugger.paused((params) => {
+            this.callFrames = params.callFrames
+            this.paused = true
+            this.fireEvent('didPause', params)
+        });
+
+        this.client.Debugger.resumed((params) => {
+            this.paused = false
+            this.events.emit('didResume')
+        });
+
+        this.client.Console.messageAdded((value) => {
+            //console.log("Console:" + JSON.stringify(value));
+            this.fireEvent('didLogMessage', value)
+        });
     }
 
     private setUpDebuggerScriptParser() {
         this.client.Debugger.scriptParsed(async (params) => {
             //let isIgnored = this.ignoreUrls['includes'](String(params.url))
             //if (isIgnored ) return
-            console.log("Script parsed",params.url);
+            //console.log("Script parsed",params.url);
             params.originalUrl = params.url
             params.url = this.getFilePathFromUrl(params.url)
             let script: Script = {
@@ -232,7 +257,7 @@ export class DEDebuggerImpl implements DEDebugger {
     }
 
     private addParsedScript (script: Script) {
-        console.log("addParsedScript:",script.url);
+        //console.log("addParsedScript:",script.url);
         let parsed = find(this.scripts, {
             url: script.url
         })
@@ -333,6 +358,7 @@ export class DEDebuggerImpl implements DEDebugger {
                 })
                 .catch((message) => {
                     // do nothing
+                    console.error(message.toString());
                 })
         })
     }

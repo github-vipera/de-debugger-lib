@@ -2,6 +2,8 @@
  * Created by enrico on 28/06/17.
  */
 
+export type EventHandler = (params:any) => void
+
 export interface DEDebugger {
     activate: () => Promise<any>
     list:() =>Promise<Array<AttachableTarget>>
@@ -18,6 +20,7 @@ export interface DEDebugger {
 }
 
 export interface ChromeDebuggerClient{
+    on:(eventName:string,handler:EventHandler) => void
     Network:Network
     Page:Page
     Tracing :Tracing
@@ -35,6 +38,7 @@ export interface Network{
 
 export interface Page{
     enable:() => Promise<any>
+    loadEventFired:(handler:EventHandler) => void
 }
 
 export interface Tracing{
@@ -43,11 +47,14 @@ export interface Tracing{
 
 export interface Console{
     enable:() => Promise<any>
+    messageAdded: (handler:EventHandler) => void
 }
 
 export interface Debugger{
     enable:() => Promise<any>
     disable:() => Promise<any>
+    paused:(handler:(params:any) => void) => void
+    resumed:(handler:(params:any) => void) => void
     scriptParsed: (callback) => Promise<any>
     setBreakpointByUrl: (position)=>Promise<any>
     setBreakpointsActive: (value:boolean) => Promise<any>
