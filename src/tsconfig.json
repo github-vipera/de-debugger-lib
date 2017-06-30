@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "declaration": true,
+    "sourceMap": true,
+    "noImplicitAny": false,
+    "lib": ["es6", "dom"],
+    "outDir": "../lib",
+    "typeRoots": ["../node_modules/@types"]
+  },
+  "exclude": [
+    "../node_modules"
+  ]
+}
