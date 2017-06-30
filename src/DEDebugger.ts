@@ -17,6 +17,9 @@ export interface DEDebugger {
     stepOver:() => Promise<any>
     stepInto:() => Promise<any>
     stepOut:() => Promise<any>
+    onEvent:(name:string,callback:Function) => void
+    removeEventListener:(name:string,callback:Function) => void
+    removeAllEventListeners:(name?:string) => void
 }
 
 export interface ChromeDebuggerClient{

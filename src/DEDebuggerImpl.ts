@@ -275,6 +275,12 @@ export class DEDebuggerImpl implements DEDebugger {
         })
     }
 
+    private getScriptById (scriptId: number): Script {
+        return this.scripts.find((s) => {
+            return parseInt(s.scriptId) === scriptId
+        })
+    }
+
     private getObjectFromString (data) {
         return new Promise((resolve, reject) => {
             try {
@@ -405,6 +411,56 @@ export class DEDebuggerImpl implements DEDebugger {
         return Promise.resolve()
     }
 
+    getScopeFromFrame (frame) {
+        let scope = [...frame.scopeChain]
+        if (frame.this) {
+            scope.unshift({
+                type: 'this',
+                object: frame.this
+            })
+        }
+        return scope.map((s) => {
+            return {
+                name: s.type,
+                value: s.object
+            }
+        })
+    }
+
+    getCallStack () {
+        return this.callFrames
+            .filter((frame: any) => {
+                frame.location.script = this.getScriptById(parseInt(frame.location.scriptId))
+                let sourceMap: any = get(frame, 'location.script.sourceMap')
+                if (sourceMap) {
+                    let position = sourceMap.getOriginalPosition(frame.location.lineNumber,
+                        parseInt(frame.location.columnNumber))
+                    if (position) {
+                        frame.location.script.url = position.url
+                        frame.location.lineNumber = position.lineNumber
+                        frame.location.columnNumber = position.columnNumber
+                        return true
+                    } else {
+                        return false
+                    }
+                }
+                return true
+            })
+            .map((frame) => {
+                return {
+                    name: frame.functionName,
+                    columnNumber: frame.location.columnNumber,
+                    lineNumber: frame.location.lineNumber,
+                    filePath: frame.location.script.url,
+                    scope: this.getScopeFromFrame(frame)
+                }
+            })
+    }
+
+    getFrameByIndex (index: number) {
+        return this.callFrames[index]
+    }
+
 
     resume () {
         return this.client.Debugger.resume()
@@ -430,6 +486,16 @@ export class DEDebuggerImpl implements DEDebugger {
     private fireEvent(name:string,params:any):void{
         //noinspection TypeScriptUnresolvedFunction
         this.events.emit(name, params);
+    }
+
+    public onEvent(name:string,callback:Function){
+        this.events.addListener(name,callback);
+    }
+    public removeEventListener(name:string,callback:Function){
+        this.events.removeListener(name,callback);
+    }
+    public removeAllEventListeners(name?:string){
+        this.events.removeAllListeners(name);
     }
 
 }
