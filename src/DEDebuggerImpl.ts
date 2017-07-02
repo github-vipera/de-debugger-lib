@@ -252,6 +252,52 @@ export class DEDebuggerImpl implements DEDebugger {
         })
     }
 
+
+    evaluateOnFrames (expression: string, frames: Array<any>) {
+        return new Promise((resolve, reject) => {
+            if (frames.length > 0) {
+                let frame = frames.shift()
+                if (frame && frame.callFrameId) {
+                    this.client.Debugger
+                        .evaluateOnCallFrame({
+                            callFrameId: frame.callFrameId,
+                            expression: expression,
+                            generatePreview: false,
+                            silent: true,
+                            returnByValue: false,
+                            includeCommandLineAPI: false
+                        })
+                        .then((result: any) => {
+                            let lookOnParent = frames.length > 0 &&
+                                result.result.subtype === 'error' &&
+                                result.result.className !== 'SyntaxError'
+                            if (lookOnParent) {
+                                resolve(this.evaluateOnFrames(expression, frames))
+                            } else if (result && !result.exceptionDetails) {
+                                resolve(result)
+                            } else {
+                                reject(result)
+                            }
+                        })
+                } else {
+                    reject('frame has no id')
+                }
+            } else {
+                reject('there are no frames to evaluate')
+            }
+        })
+    }
+
+    evaluate (expression: string) {
+        let frames = [...(this.callFrames || [])]
+        return this.evaluateOnFrames(expression, frames)
+    }
+
+    getProperties (params) {
+        return this.client.Runtime.getProperties(params)
+    }
+
+
     private getFilePathFromUrl (fileUrl: string): string {
         return fileUrl
     }
