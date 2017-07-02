@@ -17,6 +17,8 @@ export interface DEDebugger {
     stepOver:() => Promise<any>
     stepInto:() => Promise<any>
     stepOut:() => Promise<any>
+    evaluate:(expression:any) => Promise<any>
+    getProperties : (params:any) => Promise<any>
     onEvent:(name:string,callback:Function) => void
     removeEventListener:(name:string,callback:Function) => void
     removeAllEventListeners:(name?:string) => void
@@ -62,6 +64,7 @@ export interface Debugger{
     setBreakpointByUrl: (position)=>Promise<any>
     setBreakpointsActive: (value:boolean) => Promise<any>
     removeBreakpoint:(breakpointInfo:{breakpointId:string}) => Promise<any>
+    evaluateOnCallFrame: (request:any) => Promise<any>
     resume:() => Promise<any>
     pause:() => Promise<any>
     stepOver:() => Promise<any>
@@ -78,6 +81,7 @@ export interface Runtime{
     disable:() => Promise<any>
     exceptionThrown:(handler:(params) => void) => void
     consoleAPICalled:(handler:(params) => void) => void
+    getProperties:(params:any) => Promise<any>
 }
 
 export interface Inspector{
