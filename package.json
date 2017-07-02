@@ -7,6 +7,7 @@
     "start": "npm run build -- -w",
     "prepublish": "npm run build"
   },
+  "main": "./lib/index",
   "devDependencies": {
     "@types/lodash": "^4.14.62",
     "@types/node": "7.0.12",
