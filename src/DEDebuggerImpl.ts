@@ -32,12 +32,12 @@ const CDP = require('chrome-remote-interface')
 
 export class DEDebuggerImpl implements DEDebugger {
     private client:ChromeDebuggerClient = null;
-    private paused:boolean=false;
     public breakpoints: Array<Breakpoint> = [];
     public scripts: Array<Script> = [];
     public callFrames:Array<any> = [];
     public events: EventEmitter = new EventEmitter();
-
+    public attached:boolean = false;
+    public paused:boolean=false;
     constructor(){
         this.client = null;
     }
@@ -88,6 +88,7 @@ export class DEDebuggerImpl implements DEDebugger {
             this.client.Inspector.enable()
         ]).then((res) => {
             console.log("enableInternalServices done",res);
+            this.attached=true;
         });
     }
 
@@ -298,7 +299,7 @@ export class DEDebuggerImpl implements DEDebugger {
     }
 
 
-    private getFilePathFromUrl (fileUrl: string): string {
+    getFilePathFromUrl (fileUrl: string): string {
         return fileUrl
     }
 
@@ -528,10 +529,39 @@ export class DEDebuggerImpl implements DEDebugger {
         return this.client.Debugger.stepOut()
     }
 
+    disconnect () {
+        if(this.client){
+            this.client.close();
+            this.client = null;
+        }
+        this.breakpoints = [];
+        this.scripts = [];
+        this.attached =false;
+    }
+
 
     private fireEvent(name:string,params:any):void{
         //noinspection TypeScriptUnresolvedFunction
         this.events.emit(name, params);
+    }
+
+    public didClose (cb: Function) {
+        this.events.addListener('didClose', cb)
+    }
+    public didLogMessage (cb: Function) {
+        this.events.addListener('didLogMessage', cb)
+    }
+    public didThrownException (cb: Function) {
+        this.events.addListener('didThrownException', cb)
+    }
+    public didLoadScript (cb: Function) {
+        this.events.addListener('didLoadScript', cb)
+    }
+    public didPause (cb: Function) {
+        this.events.addListener('didPause', cb)
+    }
+    public didResume (cb: Function) {
+        this.events.addListener('didResume', cb)
     }
 
     public onEvent(name:string,callback:Function){

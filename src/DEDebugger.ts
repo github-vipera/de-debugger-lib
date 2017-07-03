@@ -12,6 +12,7 @@ export interface DEDebugger {
     getBreakpoint: (url: string, lineNumber: number) => Breakpoint
     getBreakpointById: (id:string) => Promise<Breakpoint>
     removeBreakpoint: (url: string, lineNumber: number) => Promise<any>
+    getFilePathFromUrl:(url:string) => string
     resume:() => Promise<any>
     pause:() => Promise<any>
     stepOver:() => Promise<any>
@@ -20,8 +21,17 @@ export interface DEDebugger {
     evaluate:(expression:any) => Promise<any>
     getProperties : (params:any) => Promise<any>
     onEvent:(name:string,callback:Function) => void
+    didClose:(handler:EventHandler) => void
+    didLogMessage:(handler:EventHandler) => void
+    didThrownException:(handler:EventHandler) => void
+    didLoadScript:(handler:EventHandler) => void
+    didPause:(handler:EventHandler) => void
+    didResume:(handler:EventHandler) => void
     removeEventListener:(name:string,callback:Function) => void
     removeAllEventListeners:(name?:string) => void
+    attached:boolean
+    paused:boolean
+    disconnect:() => void
 }
 
 export interface ChromeDebuggerClient{
@@ -35,6 +45,7 @@ export interface ChromeDebuggerClient{
     Runtime:Runtime
     Inspector:Inspector
     Target:Target
+    close:() => void
 }
 
 export interface Network{
