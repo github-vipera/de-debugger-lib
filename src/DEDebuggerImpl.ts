@@ -184,9 +184,9 @@ export class DEDebuggerImpl implements DEDebugger {
                             let targetUrl = this.getFilePathFromUrl(sourceUrl)
                             if (targetUrl === sourceUrl) {
                                 targetUrl = join(sourcePath.dir, sourceUrl)
-                                /*if(targetUrl.indexOf('file:/')>= 0 && targetUrl.indexOf('file:///')<0){
+                                if(targetUrl.indexOf('file:/')>= 0 && targetUrl.indexOf('file:///')<0){
                                     targetUrl=targetUrl.replace("file:/","file:///");
-                                }*/
+                                }
                             }
                             rawSourcemap.sources[index] = targetUrl
                             // FIXME: find another way to validate files.
@@ -483,6 +483,7 @@ export class DEDebuggerImpl implements DEDebugger {
     }
 
     getCallStack () {
+        var patchedScriptsId:Array<any>=new Array;
         return this.callFrames
             .filter((frame: any) => {
                 frame.location.script = this.getScriptById(parseInt(frame.location.scriptId))
@@ -491,9 +492,12 @@ export class DEDebuggerImpl implements DEDebugger {
                     let position = sourceMap.getOriginalPosition(frame.location.lineNumber,
                         parseInt(frame.location.columnNumber))
                     if (position) {
-                        frame.location.script.url = position.url
-                        frame.location.lineNumber = position.lineNumber
-                        frame.location.columnNumber = position.columnNumber
+                        if(patchedScriptsId.indexOf(frame.location.script.scriptId)<0){
+                            patchedScriptsId.push(frame.location.script.scriptId);
+                            frame.location.script.url = position.url
+                            frame.location.lineNumber = position.lineNumber
+                            frame.location.columnNumber = position.columnNumber
+                        }
                         return true
                     } else {
                         return false
