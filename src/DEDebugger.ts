@@ -20,6 +20,8 @@ export interface DEDebugger {
     stepOut:() => Promise<any>
     evaluate:(expression:any) => Promise<any>
     getProperties : (params:any) => Promise<any>
+    getScope:() => any
+    getCallStack:() => Array<any>
     onEvent:(name:string,callback:Function) => void
     didClose:(handler:EventHandler) => void
     didLogMessage:(handler:EventHandler) => void

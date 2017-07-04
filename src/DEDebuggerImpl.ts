@@ -184,6 +184,9 @@ export class DEDebuggerImpl implements DEDebugger {
                             let targetUrl = this.getFilePathFromUrl(sourceUrl)
                             if (targetUrl === sourceUrl) {
                                 targetUrl = join(sourcePath.dir, sourceUrl)
+                                /*if(targetUrl.indexOf('file:/')>= 0 && targetUrl.indexOf('file:///')<0){
+                                    targetUrl=targetUrl.replace("file:/","file:///");
+                                }*/
                             }
                             rawSourcemap.sources[index] = targetUrl
                             // FIXME: find another way to validate files.
@@ -456,6 +459,11 @@ export class DEDebuggerImpl implements DEDebugger {
             })
         }
         return Promise.resolve()
+    }
+
+    getScope () {
+        let firstFrame = this.getFrameByIndex(0)
+        return this.getScopeFromFrame(firstFrame)
     }
 
     getScopeFromFrame (frame) {

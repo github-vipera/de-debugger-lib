@@ -31,6 +31,10 @@ export declare class DEDebuggerImpl implements DEDebugger {
     getBreakpointById(id: string): Promise<any>;
     getBreakpoint(url: string, lineNumber: number): Breakpoint;
     removeBreakpoint(url: string, lineNumber: number): Promise<any>;
+    getScope(): {
+        name: any;
+        value: any;
+    }[];
     getScopeFromFrame(frame: any): {
         name: any;
         value: any;
