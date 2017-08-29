@@ -32,12 +32,12 @@ const CDP = require('chrome-remote-interface')
 
 export class DEDebuggerImpl implements DEDebugger {
     private client:ChromeDebuggerClient = null;
-    private paused:boolean=false;
     public breakpoints: Array<Breakpoint> = [];
     public scripts: Array<Script> = [];
     public callFrames:Array<any> = [];
     public events: EventEmitter = new EventEmitter();
-
+    public attached:boolean = false;
+    public paused:boolean=false;
     constructor(){
         this.client = null;
     }
@@ -88,6 +88,7 @@ export class DEDebuggerImpl implements DEDebugger {
             this.client.Inspector.enable()
         ]).then((res) => {
             console.log("enableInternalServices done",res);
+            this.attached=true;
         });
     }
 
@@ -183,6 +184,9 @@ export class DEDebuggerImpl implements DEDebugger {
                             let targetUrl = this.getFilePathFromUrl(sourceUrl)
                             if (targetUrl === sourceUrl) {
                                 targetUrl = join(sourcePath.dir, sourceUrl)
+                                if(targetUrl.indexOf('file:/')>= 0 && targetUrl.indexOf('file:///')<0){
+                                    targetUrl=targetUrl.replace("file:/","file:///");
+                                }
                             }
                             rawSourcemap.sources[index] = targetUrl
                             // FIXME: find another way to validate files.
@@ -298,7 +302,7 @@ export class DEDebuggerImpl implements DEDebugger {
     }
 
 
-    private getFilePathFromUrl (fileUrl: string): string {
+    getFilePathFromUrl (fileUrl: string): string {
         return fileUrl
     }
 
@@ -457,6 +461,11 @@ export class DEDebuggerImpl implements DEDebugger {
         return Promise.resolve()
     }
 
+    getScope () {
+        let firstFrame = this.getFrameByIndex(0)
+        return this.getScopeFromFrame(firstFrame)
+    }
+
     getScopeFromFrame (frame) {
         let scope = [...frame.scopeChain]
         if (frame.this) {
@@ -474,6 +483,7 @@ export class DEDebuggerImpl implements DEDebugger {
     }
 
     getCallStack () {
+        var patchedScriptsId:Array<any>=new Array;
         return this.callFrames
             .filter((frame: any) => {
                 frame.location.script = this.getScriptById(parseInt(frame.location.scriptId))
@@ -482,9 +492,12 @@ export class DEDebuggerImpl implements DEDebugger {
                     let position = sourceMap.getOriginalPosition(frame.location.lineNumber,
                         parseInt(frame.location.columnNumber))
                     if (position) {
-                        frame.location.script.url = position.url
-                        frame.location.lineNumber = position.lineNumber
-                        frame.location.columnNumber = position.columnNumber
+                        if(patchedScriptsId.indexOf(frame.location.script.scriptId)<0){
+                            patchedScriptsId.push(frame.location.script.scriptId);
+                            frame.location.script.url = position.url
+                            frame.location.lineNumber = position.lineNumber
+                            frame.location.columnNumber = position.columnNumber
+                        }
                         return true
                     } else {
                         return false
@@ -528,10 +541,39 @@ export class DEDebuggerImpl implements DEDebugger {
         return this.client.Debugger.stepOut()
     }
 
+    disconnect () {
+        if(this.client){
+            this.client.close();
+            this.client = null;
+        }
+        this.breakpoints = [];
+        this.scripts = [];
+        this.attached =false;
+    }
+
 
     private fireEvent(name:string,params:any):void{
         //noinspection TypeScriptUnresolvedFunction
         this.events.emit(name, params);
+    }
+
+    public didClose (cb: Function) {
+        this.events.addListener('didClose', cb)
+    }
+    public didLogMessage (cb: Function) {
+        this.events.addListener('didLogMessage', cb)
+    }
+    public didThrownException (cb: Function) {
+        this.events.addListener('didThrownException', cb)
+    }
+    public didLoadScript (cb: Function) {
+        this.events.addListener('didLoadScript', cb)
+    }
+    public didPause (cb: Function) {
+        this.events.addListener('didPause', cb)
+    }
+    public didResume (cb: Function) {
+        this.events.addListener('didResume', cb)
     }
 
     public onEvent(name:string,callback:Function){
